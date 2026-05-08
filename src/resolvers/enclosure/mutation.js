@@ -1,53 +1,7 @@
 const db = require('../../config/firebase');
 const { enclosureMapper } = require('./mapper');
-
-const seedEnclosuresData = [
-  {
-    id: 'rec_01',
-    name: 'Onça Pintada',
-    speciesId: 'Panthera onca',
-    photoUrl: 'https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&q=80&w=400',
-    limits: {
-      tempMin: 22,
-      tempMax: 30,
-      humidityMin: 60,
-      humidityMax: 85
-    },
-    lastReadings: {
-      temp: 32,
-      humidity: 80,
-      luminosity: 400,
-      noise: 50,
-      timestamp: new Date().toISOString()
-    },
-    status: 'warning'
-  },
-  {
-    id: 'rec_02',
-    name: 'Arara Azul',
-    speciesId: 'Anodorhynchus',
-    photoUrl: 'https://images.unsplash.com/photo-1552728089-57bdde30beb3?auto=format&fit=crop&q=80&w=400',
-    limits: {
-      tempMin: 20,
-      tempMax: 28,
-      humidityMin: 50,
-      humidityMax: 70
-    },
-    lastReadings: {
-      temp: 26,
-      humidity: 65,
-      luminosity: 800,
-      noise: 40,
-      timestamp: new Date().toISOString()
-    },
-    status: 'ok'
-  }
-];
-
-const seedActuatorsData = {
-  rec_01: { fan: false, nebulizer: true, heater: false, lamp: true },
-  rec_02: { fan: true, nebulizer: false, heater: false, lamp: true }
-};
+const seedEnclosuresData = require('../../../seeds-enclosures.json');
+const seedActuatorsData = require('../../../seeds-actuators.json');
 
 const enclosureMutations = {
   toggleActuator: async (_, { enclosureId, actuatorType, state }) => {
@@ -75,16 +29,70 @@ const enclosureMutations = {
     }
   },
 
+  createEnclosure: async (_, { input }) => {
+    try {
+      const newEnclosureRef = db.collection('enclosures').doc();
+      const newEnclosure = {
+        id: newEnclosureRef.id,
+        ...input,
+        lastReadings: null,
+      };
+      await newEnclosureRef.set(newEnclosure);
+      
+      await db.collection('actuators').doc(newEnclosureRef.id).set({
+        fan: false, nebulizer: false, heater: false, lamp: false
+      });
+      
+      return enclosureMapper(newEnclosure);
+    } catch (error) {
+      console.error('Erro ao criar recinto:', error);
+      throw new Error('Erro ao criar recinto.');
+    }
+  },
+
+  updateEnclosure: async (_, { id, input }) => {
+    try {
+      const enclosureRef = db.collection('enclosures').doc(id);
+      const enclosureDoc = await enclosureRef.get();
+      
+      if (!enclosureDoc.exists) {
+        throw new Error('Recinto não encontrado.');
+      }
+      
+      await enclosureRef.update(input);
+      const updatedDoc = await enclosureRef.get();
+      return enclosureMapper(updatedDoc);
+    } catch (error) {
+      console.error('Erro ao atualizar recinto:', error);
+      throw new Error('Erro ao atualizar recinto.');
+    }
+  },
+
+  deleteEnclosure: async (_, { id }) => {
+    try {
+      await db.collection('enclosures').doc(id).delete();
+      await db.collection('actuators').doc(id).delete();
+      return true;
+    } catch (error) {
+      console.error('Erro ao excluir recinto:', error);
+      throw new Error('Erro ao excluir recinto.');
+    }
+  },
+
   seedEnclosures: async () => {
     try {
       const createdEnclosures = [];
 
       for (const enclosure of seedEnclosuresData) {
-        await db.collection('enclosures').doc(enclosure.id).set(enclosure);
+        const id = enclosure.id || db.collection('enclosures').doc().id;
+        const enclosureToSave = { ...enclosure, id };
+        
+        await db.collection('enclosures').doc(id).set(enclosureToSave);
 
-        await db.collection('actuators').doc(enclosure.id).set(seedActuatorsData[enclosure.id]);
+        const actuators = seedActuatorsData[id] || { fan: false, nebulizer: false, heater: false, lamp: false };
+        await db.collection('actuators').doc(id).set(actuators);
 
-        createdEnclosures.push(enclosure);
+        createdEnclosures.push(enclosureMapper(enclosureToSave));
       }
 
       console.log('✅ Seed de recintos criado com sucesso!');

@@ -29,6 +29,7 @@ type Enclosure {
   limits: Limits
   actuators: Actuator
   status: String
+  operatorIds: [String]
 }
 
 type ToggleActuatorResult {
@@ -36,12 +37,38 @@ type ToggleActuatorResult {
   message: String
 }
 
+input LimitsInput {
+  tempMin: Float
+  tempMax: Float
+  humidityMin: Float
+  humidityMax: Float
+}
+
+input EnclosureInput {
+  name: String!
+  speciesId: String
+  photoUrl: String
+  status: String
+  limits: LimitsInput
+}
+
+input UpdateEnclosureInput {
+  name: String
+  speciesId: String
+  photoUrl: String
+  status: String
+  limits: LimitsInput
+}
+
 type Query {
-  enclosures: [Enclosure]
+  enclosures(operatorId: ID): [Enclosure]
   enclosure(id: ID!): Enclosure
 }
 
 type Mutation {
   toggleActuator(enclosureId: ID!, actuatorType: String!, state: Boolean!): ToggleActuatorResult
+  createEnclosure(input: EnclosureInput!): Enclosure
+  updateEnclosure(id: ID!, input: UpdateEnclosureInput!): Enclosure
+  deleteEnclosure(id: ID!): Boolean
   seedEnclosures: [Enclosure]
 }

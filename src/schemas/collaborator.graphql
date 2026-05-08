@@ -1,0 +1,38 @@
+type Collaborator {
+  id: ID!
+  email: String!
+  name: String
+  role: String
+  assignedEnclosures: [String]
+  createdAt: String
+  updatedAt: String
+}
+
+input CreateCollaboratorInput {
+  email: String!
+  name: String
+  role: String
+  assignedEnclosures: [String]
+}
+
+input UpdateCollaboratorInput {
+  name: String
+  role: String
+  assignedEnclosures: [String]
+}
+
+type Query {
+  collaborators: [Collaborator]
+  collaborator(id: ID!): Collaborator
+  myProfile: Collaborator
+  enclosuresByCollaborator(collaboratorId: ID!): [Enclosure]
+}
+
+type Mutation {
+  createCollaborator(input: CreateCollaboratorInput!): Collaborator
+  updateCollaborator(id: ID!, input: UpdateCollaboratorInput!): Collaborator
+  deleteCollaborator(id: ID!): Boolean
+  assignEnclosureToCollaborator(collaboratorId: ID!, enclosureId: ID!): Collaborator
+  removeEnclosureFromCollaborator(collaboratorId: ID!, enclosureId: ID!): Collaborator
+  seedCollaborators: [Collaborator]
+}

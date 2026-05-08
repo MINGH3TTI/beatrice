@@ -1,14 +1,17 @@
 const enclosureMapper = (doc) => {
-  const data = doc.data ? doc.data() : doc;
+  if (!doc) return null;
+  const id = doc.id;
+  const data = typeof doc.data === 'function' ? doc.data() : doc;
+
   return {
-    id: doc.id,
+    id,
     name: data.name || '',
     speciesId: data.speciesId || '',
     photoUrl: data.photoUrl || '',
     lastReadings: data.lastReadings || null,
     limits: data.limits || null,
-    actuators: data.actuators || { fan: false, nebulizer: false, heater: false, lamp: false },
-    status: data.status || 'ok'
+    status: data.status || 'ok',
+    operatorIds: data.operatorIds || []
   };
 };
 
