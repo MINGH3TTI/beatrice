@@ -28,7 +28,14 @@ type Query {
   enclosuresByCollaborator(collaboratorId: ID!): [Enclosure]
 }
 
+type AuthPayload {
+  token: String!
+  collaborator: Collaborator!
+}
+
 type Mutation {
+  login(email: String!, password: String!): AuthPayload
+  loginByBadge(badgeId: String!): AuthPayload
   createCollaborator(input: CreateCollaboratorInput!): Collaborator
   updateCollaborator(id: ID!, input: UpdateCollaboratorInput!): Collaborator
   deleteCollaborator(id: ID!): Boolean

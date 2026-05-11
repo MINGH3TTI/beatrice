@@ -1,5 +1,7 @@
 const db = require('../../config/firebase');
 const { collaboratorMapper } = require('./mapper');
+const jwt = require('jsonwebtoken');
+const JWT_SECRET = process.env.JWT_SECRET || 'beatrice_secret_key_123';
 
 const collaboratorQueries = {
   collaborators: async () => {
@@ -33,29 +35,19 @@ const collaboratorQueries = {
       }
 
       const token = authHeader.replace('Bearer ', '');
-      const { auth } = require('../../config/firebase');
-      const decodedToken = await auth.verifyIdToken(token);
-      const uid = decodedToken.uid;
+      const decodedToken = jwt.verify(token, JWT_SECRET);
+      const collaboratorId = decodedToken.id;
 
-      const snapshot = await db.collection('collaborators')
-        .where('firebaseUid', '==', uid)
-        .limit(1)
-        .get();
+      const doc = await db.collection('collaborators').doc(collaboratorId).get();
 
-      if (snapshot.empty) {
-        return {
-          id: uid,
-          email: decodedToken.email || '',
-          name: decodedToken.name || '',
-          role: 'operator',
-          assignedEnclosures: []
-        };
+      if (!doc.exists) {
+        throw new Error('Colaborador não encontrado.');
       }
 
-      return collaboratorMapper(snapshot.docs[0]);
+      return collaboratorMapper(doc);
     } catch (error) {
       console.error('Erro ao buscar perfil:', error);
-      throw new Error('Erro ao carregar perfil.');
+      throw new Error('Usuário não autenticado ou token inválido.');
     }
   },
 
