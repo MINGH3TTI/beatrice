@@ -36,9 +36,23 @@ type EnclosureDashboard {
     stats: DashboardStats
 }
 
+type GlobalDashboard {
+    totalEnclosures: Int
+    statusCounts: StatusCounts
+    averages: DashboardStats
+    history: [Variant]
+}
+
+type StatusCounts {
+    ok: Int
+    warning: Int
+    critical: Int
+}
+
 type Query {
     latestVariants(enclosureId: ID!, limit: Int): [Variant]
     enclosureDashboard(enclosureId: ID!): EnclosureDashboard
+    globalDashboard: GlobalDashboard
 }
 
 type Mutation {

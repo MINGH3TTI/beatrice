@@ -58,6 +58,53 @@ const variantQueries = {
       console.error("Erro ao gerar dashboard:", error);
       throw new Error("Erro ao carregar dados do dashboard.");
     }
+  },
+
+  globalDashboard: async () => {
+    try {
+      const enclosuresSnapshot = await db.collection('enclosures').get();
+      const enclosures = enclosuresSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      const variantsSnapshot = await db.collection('variants')
+        .orderBy('timestamp', 'desc')
+        .limit(200)
+        .get();
+      
+      const history = variantsSnapshot.docs.map(doc => variantMapper(doc));
+
+      const statusCounts = {
+        ok: enclosures.filter(e => e.status === 'ok' || !e.status).length,
+        warning: enclosures.filter(e => e.status === 'warning').length,
+        critical: enclosures.filter(e => e.status === 'critical').length
+      };
+
+      const calculateStats = (data, field) => {
+        const values = data.map(v => v[field]).filter(v => v !== undefined && v !== null);
+        if (values.length === 0) return { min: 0, max: 0, avg: 0 };
+        return {
+          min: Math.min(...values),
+          max: Math.max(...values),
+          avg: values.reduce((a, b) => a + b, 0) / values.length
+        };
+      };
+
+      const averages = {
+        temp: calculateStats(history, 'temp'),
+        humidity: calculateStats(history, 'humidity'),
+        noise: calculateStats(history, 'noise'),
+        luminosity: calculateStats(history, 'luminosity')
+      };
+
+      return {
+        totalEnclosures: enclosures.length,
+        statusCounts,
+        averages,
+        history: history.reverse()
+      };
+    } catch (error) {
+      console.error("Erro ao gerar global dashboard:", error);
+      throw new Error("Erro ao carregar dashboard global.");
+    }
   }
 };
 
