@@ -2,7 +2,7 @@ const db = require('../../config/firebase');
 const { collaboratorMapper } = require('./mapper');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const JWT_SECRET = process.env.JWT_SECRET || 'beatrice_secret_key_123';
+const { getJwtSecret, requireAdmin } = require('../../utils/auth');
 
 const seedCollaboratorsData = [
   {
@@ -51,7 +51,7 @@ const collaboratorMutations = {
       const collaborator = collaboratorMapper(collabDoc);
       const token = jwt.sign(
         { id: collaborator.id, email: collaborator.email, role: collaborator.role },
-        JWT_SECRET,
+        getJwtSecret(),
         { expiresIn: '7d' }
       );
 
@@ -77,7 +77,7 @@ const collaboratorMutations = {
       const collaborator = collaboratorMapper(collabDoc);
       const token = jwt.sign(
         { id: collaborator.id, email: collaborator.email, role: collaborator.role },
-        JWT_SECRET,
+        getJwtSecret(),
         { expiresIn: '7d' }
       );
 
@@ -88,7 +88,38 @@ const collaboratorMutations = {
     }
   },
 
-  createCollaborator: async (_, { input }) => {
+  forgotPassword: async (_, { email }) => {
+    try {
+      const snapshot = await db.collection('collaborators')
+        .where('email', '==', email)
+        .limit(1)
+        .get();
+
+      if (snapshot.empty) {
+        return {
+          success: false,
+          message: 'E-mail não encontrado em nossa base.'
+        };
+      }
+
+      // TODO: Implementar lógica de envio de e-mail de recuperação
+      
+      return {
+        success: true,
+        message: 'E-mail de recuperação enviado com sucesso!'
+      };
+    } catch (error) {
+      console.error('Erro no forgotPassword:', error);
+      return {
+        success: false,
+        message: 'Erro interno ao tentar recuperar a senha.'
+      };
+    }
+  },
+
+  createCollaborator: async (_, { input }, context) => {
+    requireAdmin(context);
+
     try {
       const hashedPassword = input.password ? await bcrypt.hash(input.password, 10) : null;
 
@@ -110,7 +141,9 @@ const collaboratorMutations = {
     }
   },
 
-  updateCollaborator: async (_, { id, input }) => {
+  updateCollaborator: async (_, { id, input }, context) => {
+    requireAdmin(context);
+
     try {
       const collabRef = db.collection('collaborators').doc(id);
       const collabDoc = await collabRef.get();
@@ -134,17 +167,21 @@ const collaboratorMutations = {
     }
   },
 
-  deleteCollaborator: async (_, { id }) => {
+  deleteCollaborator: async (_, { id }, context) => {
+    requireAdmin(context);
+
     try {
       await db.collection('collaborators').doc(id).delete();
-      return true;
+      return { success: true };
     } catch (error) {
       console.error('Erro ao deletar colaborador:', error);
-      throw new Error('Erro ao deletar colaborador.');
+      return { success: false };
     }
   },
 
-  assignEnclosureToCollaborator: async (_, { collaboratorId, enclosureId }) => {
+  assignEnclosureToCollaborator: async (_, { collaboratorId, enclosureId }, context) => {
+    requireAdmin(context);
+
     try {
       const collabRef = db.collection('collaborators').doc(collaboratorId);
       const collabDoc = await collabRef.get();
@@ -172,7 +209,9 @@ const collaboratorMutations = {
     }
   },
 
-  removeEnclosureFromCollaborator: async (_, { collaboratorId, enclosureId }) => {
+  removeEnclosureFromCollaborator: async (_, { collaboratorId, enclosureId }, context) => {
+    requireAdmin(context);
+
     try {
       const collabRef = db.collection('collaborators').doc(collaboratorId);
       const collabDoc = await collabRef.get();
@@ -197,7 +236,9 @@ const collaboratorMutations = {
     }
   },
 
-  seedCollaborators: async () => {
+  seedCollaborators: async (_, args, context) => {
+    requireAdmin(context);
+
     try {
       const createdCollaborators = [];
 

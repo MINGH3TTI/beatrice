@@ -2,15 +2,19 @@ const enclosureMapper = (doc) => {
   if (!doc) return null;
   const id = doc.id;
   const data = typeof doc.data === 'function' ? doc.data() : doc;
+  const actuators = data.actuators || { fan: false, nebulizer: false, heater: false, lamp: false };
+  const lastReadings = data.lastReadings || null;
+  const limits = data.limits || null;
 
   return {
     id,
     name: data.name || '',
     speciesId: data.speciesId || '',
     photoUrl: data.photoUrl || '',
-    lastReadings: data.lastReadings || null,
-    limits: data.limits || null,
-    status: data.status || 'ok',
+    lastReadings,
+    limits,
+    actuators,
+    status: lastReadings && limits ? calculateStatus(lastReadings, limits) : (data.status || 'ok'),
     operatorIds: data.operatorIds || []
   };
 };

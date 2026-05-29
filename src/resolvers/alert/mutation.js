@@ -1,5 +1,6 @@
 const db = require('../../config/firebase');
 const { alertMapper } = require('./mapper');
+const { requireAuth, requireAdmin, isAdminRole } = require('../../utils/auth');
 
 const seedAlertsData = [
   {
@@ -13,13 +14,22 @@ const seedAlertsData = [
 ];
 
 const alertMutations = {
-  resolveAlert: async (_, { alertId }) => {
+  resolveAlert: async (_, { alertId }, context) => {
     try {
+      const user = requireAuth(context);
       const alertRef = db.collection('alerts').doc(alertId);
       const alertDoc = await alertRef.get();
 
       if (!alertDoc.exists) {
         throw new Error('Alerta não encontrado.');
+      }
+
+      if (!isAdminRole(user.role)) {
+        const collabDoc = await db.collection('collaborators').doc(user.id).get();
+        const assignedEnclosures = collabDoc.exists ? (collabDoc.data().assignedEnclosures || []) : [];
+        if (!assignedEnclosures.includes(alertDoc.data().enclosureId)) {
+          throw new Error('Acesso negado ao alerta.');
+        }
       }
 
       await alertRef.update({ resolved: true });
@@ -32,7 +42,9 @@ const alertMutations = {
     }
   },
 
-  createAlert: async (_, { input }) => {
+  createAlert: async (_, { input }, context) => {
+    requireAuth(context);
+
     try {
       const newAlert = {
         ...input,
@@ -50,7 +62,9 @@ const alertMutations = {
     }
   },
 
-  seedAlerts: async () => {
+  seedAlerts: async (_, args, context) => {
+    requireAdmin(context);
+
     try {
       const createdAlerts = [];
 

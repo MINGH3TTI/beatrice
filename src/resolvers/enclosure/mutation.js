@@ -1,11 +1,22 @@
 const db = require('../../config/firebase');
 const { enclosureMapper } = require('./mapper');
+const { requireAuth, requireAdmin, isAdminRole } = require('../../utils/auth');
 const seedEnclosuresData = require('../../../seeds-enclosures.json');
 const seedActuatorsData = require('../../../seeds-actuators.json');
 
 const enclosureMutations = {
-  toggleActuator: async (_, { enclosureId, actuatorType, state }) => {
+  toggleActuator: async (_, { enclosureId, actuatorType, state }, context) => {
+    const user = requireAuth(context);
+
     try {
+      if (!isAdminRole(user.role)) {
+        const collabDoc = await db.collection('collaborators').doc(user.id).get();
+        const assignedEnclosures = collabDoc.exists ? (collabDoc.data().assignedEnclosures || []) : [];
+        if (!assignedEnclosures.includes(enclosureId)) {
+          return { success: false, message: 'Acesso negado ao recinto.' };
+        }
+      }
+
       const validActuators = ['fan', 'nebulizer', 'heater', 'lamp'];
       if (!validActuators.includes(actuatorType)) {
         return { success: false, message: 'Tipo de atuador inválido.' };
@@ -29,7 +40,9 @@ const enclosureMutations = {
     }
   },
 
-  createEnclosure: async (_, { input }) => {
+  createEnclosure: async (_, { input }, context) => {
+    requireAdmin(context);
+
     try {
       const newEnclosureRef = db.collection('enclosures').doc();
       const newEnclosure = {
@@ -50,7 +63,9 @@ const enclosureMutations = {
     }
   },
 
-  updateEnclosure: async (_, { id, input }) => {
+  updateEnclosure: async (_, { id, input }, context) => {
+    requireAdmin(context);
+
     try {
       const enclosureRef = db.collection('enclosures').doc(id);
       const enclosureDoc = await enclosureRef.get();
@@ -68,18 +83,22 @@ const enclosureMutations = {
     }
   },
 
-  deleteEnclosure: async (_, { id }) => {
+  deleteEnclosure: async (_, { id }, context) => {
+    requireAdmin(context);
+
     try {
       await db.collection('enclosures').doc(id).delete();
       await db.collection('actuators').doc(id).delete();
-      return true;
+      return { success: true };
     } catch (error) {
       console.error('Erro ao excluir recinto:', error);
-      throw new Error('Erro ao excluir recinto.');
+      return { success: false };
     }
   },
 
-  seedEnclosures: async () => {
+  seedEnclosures: async (_, args, context) => {
+    requireAdmin(context);
+
     try {
       const createdEnclosures = [];
 

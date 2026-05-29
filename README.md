@@ -31,7 +31,15 @@ A estrutura do código é organizada da seguinte forma:
 ## 🏁 Como Iniciar
 
 1. Instale as dependências: `npm install`
-2. Configure as variáveis de ambiente no arquivo `.env` (necessário `FIREBASE_KEY_PATH`).
+2. Configure as variáveis de ambiente no arquivo `.env`:
+   - `FIREBASE_KEY_PATH` ou `FIREBASE_SERVICE_ACCOUNT`
+   - `JWT_SECRET`
+   - `PORT` (opcional, padrão `4000`)
 3. Inicie o servidor: `npm start` (ou `node src/index.js`)
+4. Valide antes de publicar:
+   ```bash
+   npm run check
+   npm test
+   ```
 
 ![BEATRICE](https://media.tenor.com/I-2_kJDfAIUAAAAM/re-zero-beatrice.gif)
