@@ -35,12 +35,22 @@ type AuthPayload {
   collaborator: Collaborator!
 }
 
+type ForgotPasswordResponse {
+  success: Boolean!
+  message: String!
+}
+
+type DeleteResult {
+  success: Boolean!
+}
+
 type Mutation {
   login(email: String!, password: String!): AuthPayload
   loginByBadge(badgeId: String!): AuthPayload
+  forgotPassword(email: String!): ForgotPasswordResponse!
   createCollaborator(input: CreateCollaboratorInput!): Collaborator
   updateCollaborator(id: ID!, input: UpdateCollaboratorInput!): Collaborator
-  deleteCollaborator(id: ID!): Boolean
+  deleteCollaborator(id: ID!): DeleteResult
   assignEnclosureToCollaborator(collaboratorId: ID!, enclosureId: ID!): Collaborator
   removeEnclosureFromCollaborator(collaboratorId: ID!, enclosureId: ID!): Collaborator
   seedCollaborators: [Collaborator]

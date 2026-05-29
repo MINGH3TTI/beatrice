@@ -32,8 +32,15 @@ type DashboardStats {
 
 type EnclosureDashboard {
     enclosureId: ID!
+    latestReading: Variant
     history: [Variant]
     stats: DashboardStats
+}
+
+type VariantPage {
+    items: [Variant]
+    nextCursor: String
+    hasMore: Boolean
 }
 
 type GlobalDashboard {
@@ -51,8 +58,10 @@ type StatusCounts {
 
 type Query {
     latestVariants(enclosureId: ID!, limit: Int): [Variant]
-    enclosureDashboard(enclosureId: ID!): EnclosureDashboard
-    globalDashboard: GlobalDashboard
+    enclosureDashboard(enclosureId: ID!, historyLimit: Int): EnclosureDashboard
+    enclosureHistory(enclosureId: ID!, limit: Int, cursor: String): VariantPage
+    globalHistory(limit: Int, cursor: String): VariantPage
+    globalDashboard(historyLimit: Int): GlobalDashboard
 }
 
 type Mutation {

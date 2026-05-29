@@ -1,10 +1,11 @@
 const db = require('../../config/firebase');
 const { collaboratorMapper } = require('./mapper');
-const jwt = require('jsonwebtoken');
-const JWT_SECRET = process.env.JWT_SECRET || 'beatrice_secret_key_123';
+const { requireAuth, requireAdmin } = require('../../utils/auth');
 
 const collaboratorQueries = {
-  collaborators: async () => {
+  collaborators: async (_, args, context) => {
+    requireAdmin(context);
+
     try {
       const snapshot = await db.collection('collaborators').get();
       return snapshot.docs.map(doc => collaboratorMapper(doc));
@@ -14,7 +15,12 @@ const collaboratorQueries = {
     }
   },
 
-  collaborator: async (_, { id }) => {
+  collaborator: async (_, { id }, context) => {
+    const user = requireAuth(context);
+    if (user.id !== id && user.role !== 'admin' && user.role !== 'gestor') {
+      throw new Error('Acesso negado.');
+    }
+
     try {
       const doc = await db.collection('collaborators').doc(id).get();
       if (!doc.exists) {
@@ -29,14 +35,8 @@ const collaboratorQueries = {
 
   myProfile: async (_, args, context) => {
     try {
-      const authHeader = context.req?.headers?.authorization;
-      if (!authHeader) {
-        throw new Error('Usuário não autenticado.');
-      }
-
-      const token = authHeader.replace('Bearer ', '');
-      const decodedToken = jwt.verify(token, JWT_SECRET);
-      const collaboratorId = decodedToken.id;
+      const user = requireAuth(context);
+      const collaboratorId = user.id;
 
       const doc = await db.collection('collaborators').doc(collaboratorId).get();
 
@@ -51,7 +51,12 @@ const collaboratorQueries = {
     }
   },
 
-  enclosuresByCollaborator: async (_, { collaboratorId }) => {
+  enclosuresByCollaborator: async (_, { collaboratorId }, context) => {
+    const user = requireAuth(context);
+    if (user.id !== collaboratorId && user.role !== 'admin' && user.role !== 'gestor') {
+      throw new Error('Acesso negado.');
+    }
+
     try {
       const collabDoc = await db.collection('collaborators').doc(collaboratorId).get();
       if (!collabDoc.exists) {
