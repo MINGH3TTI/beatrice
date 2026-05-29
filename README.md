@@ -31,7 +31,7 @@ A estrutura do código é organizada da seguinte forma:
 ## 🏁 Como Iniciar
 
 1. Instale as dependências: `npm install`
-2. Configure as variáveis de ambiente no arquivo `.env`:
+2. Copie `.env.example` para `.env` e configure as variáveis obrigatórias:
    - `FIREBASE_KEY_PATH` ou `FIREBASE_SERVICE_ACCOUNT`
    - `JWT_SECRET`
    - `PORT` (opcional, padrão `4000`)
@@ -41,5 +41,16 @@ A estrutura do código é organizada da seguinte forma:
    npm run check
    npm test
    ```
+
+Variáveis obrigatórias:
+
+- `JWT_SECRET`: segredo usado para assinar e validar tokens JWT. Em produção, use um valor longo e aleatório.
+- `FIREBASE_KEY_PATH`: caminho para o arquivo JSON da service account em desenvolvimento local.
+- `FIREBASE_SERVICE_ACCOUNT`: alternativa recomendada para deploy; informe o JSON da service account em uma única variável de ambiente.
+
+No Render, configure pelo painel do serviço em **Environment**:
+
+- `JWT_SECRET`
+- `FIREBASE_SERVICE_ACCOUNT`
 
 ![BEATRICE](https://media.tenor.com/I-2_kJDfAIUAAAAM/re-zero-beatrice.gif)
