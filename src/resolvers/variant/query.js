@@ -1,5 +1,6 @@
 const db = require('../../config/firebase');
 const { variantMapper } = require('./mapper');
+const { ExportHistoryValidationError, buildExportHistoryQuery } = require('./export-history');
 const { requireAuth, isAdminRole } = require('../../utils/auth');
 
 const DEFAULT_HISTORY_LIMIT = 100;
@@ -203,24 +204,21 @@ const variantQueries = {
     }
   },
 
-  exportHistory: async (_, { enclosureId, limit = MAX_HISTORY_LIMIT }, context) => {
+  exportHistory: async (_, { enclosureId, startDate, endDate, limit }, context) => {
     try {
       const user = requireAuth(context);
-      const pageSize = normalizeLimit(limit, MAX_HISTORY_LIMIT);
       const allowedIds = await getAllowedEnclosureIds(user);
 
       if (enclosureId && !await canAccessEnclosure(user, enclosureId)) {
         throw new Error('Acesso negado ao recinto.');
       }
 
-      let query = db.collection('variants').orderBy('timestamp', 'desc');
-      if (enclosureId) {
-        query = db.collection('variants')
-          .where('enclosureId', '==', enclosureId)
-          .orderBy('timestamp', 'desc');
+      let query = buildExportHistoryQuery(db.collection('variants'), { enclosureId, startDate, endDate });
+      if (limit !== undefined && limit !== null) {
+        query = query.limit(normalizeLimit(limit, MAX_HISTORY_LIMIT));
       }
 
-      const snapshot = await query.limit(pageSize).get();
+      const snapshot = await query.get();
       const enclosureNames = await getEnclosureNames();
 
       return snapshot.docs
@@ -231,8 +229,11 @@ const variantQueries = {
           enclosureName: enclosureNames.get(variant.enclosureId) || variant.enclosureId
         }));
     } catch (error) {
-      console.error("Erro ao exportar histÃ³rico:", error);
-      throw new Error("Erro ao exportar histÃ³rico.");
+      console.error('Erro ao exportar historico:', error);
+      if (error instanceof ExportHistoryValidationError) {
+        throw error;
+      }
+      throw new Error('Erro ao exportar historico.');
     }
   }
 };
