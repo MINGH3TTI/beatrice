@@ -3,6 +3,7 @@ const variantMapper = (doc) => {
   return {
     id: doc.id || null,
     enclosureId: data.enclosureId,
+    enclosureName: data.enclosureName || null,
     temp: data.temp ?? data.temperature,
     humidity: data.humidity,
     noise: data.noise ?? data.noises,

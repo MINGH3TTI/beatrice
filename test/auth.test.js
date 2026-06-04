@@ -32,5 +32,6 @@ test('requireAuth and requireAdmin enforce access', () => {
   assert.throws(() => requireAdmin({ currentUser: { id: 'user-1', role: 'operator' } }), /administradores/);
   assert.equal(requireAdmin({ currentUser: { id: 'user-2', role: 'admin' } }).id, 'user-2');
   assert.equal(isAdminRole('gestor'), true);
+  assert.equal(isAdminRole('ADMIN'), true);
   assert.equal(isAdminRole('operator'), false);
 });

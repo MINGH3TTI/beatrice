@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 
-const ADMIN_ROLES = ['admin', 'gestor'];
+const ADMIN_ROLES = ['admin', 'gestor', 'ADMIN'];
 
 function getJwtSecret() {
   const secret = process.env.JWT_SECRET;

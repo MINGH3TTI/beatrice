@@ -201,7 +201,48 @@ const variantQueries = {
       console.error("Erro ao gerar global dashboard:", error);
       throw new Error("Erro ao carregar dashboard global.");
     }
+  },
+
+  exportHistory: async (_, { enclosureId, limit = MAX_HISTORY_LIMIT }, context) => {
+    try {
+      const user = requireAuth(context);
+      const pageSize = normalizeLimit(limit, MAX_HISTORY_LIMIT);
+      const allowedIds = await getAllowedEnclosureIds(user);
+
+      if (enclosureId && !await canAccessEnclosure(user, enclosureId)) {
+        throw new Error('Acesso negado ao recinto.');
+      }
+
+      let query = db.collection('variants').orderBy('timestamp', 'desc');
+      if (enclosureId) {
+        query = db.collection('variants')
+          .where('enclosureId', '==', enclosureId)
+          .orderBy('timestamp', 'desc');
+      }
+
+      const snapshot = await query.limit(pageSize).get();
+      const enclosureNames = await getEnclosureNames();
+
+      return snapshot.docs
+        .map(doc => variantMapper(doc))
+        .filter(variant => !allowedIds || allowedIds.includes(variant.enclosureId))
+        .map(variant => ({
+          ...variant,
+          enclosureName: enclosureNames.get(variant.enclosureId) || variant.enclosureId
+        }));
+    } catch (error) {
+      console.error("Erro ao exportar histÃ³rico:", error);
+      throw new Error("Erro ao exportar histÃ³rico.");
+    }
   }
 };
+
+async function getEnclosureNames() {
+  const snapshot = await db.collection('enclosures').get();
+  return new Map(snapshot.docs.map(doc => {
+    const data = doc.data();
+    return [doc.id, data.name || doc.id];
+  }));
+}
 
 module.exports = variantQueries;

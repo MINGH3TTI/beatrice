@@ -10,6 +10,8 @@ type Limits {
   tempMax: Float
   humidityMin: Float
   humidityMax: Float
+  noiseMax: Float
+  luminosityMax: Float
 }
 
 
@@ -35,6 +37,8 @@ input LimitsInput {
   tempMax: Float
   humidityMin: Float
   humidityMax: Float
+  noiseMax: Float
+  luminosityMax: Float
 }
 
 input CreateEnclosureInput {
@@ -43,6 +47,12 @@ input CreateEnclosureInput {
   photoUrl: String
   status: String
   limits: LimitsInput
+  tempMin: Float
+  tempMax: Float
+  humidityMin: Float
+  humidityMax: Float
+  noiseMax: Float
+  luminosityMax: Float
 }
 
 input UpdateEnclosureInput {
@@ -51,6 +61,12 @@ input UpdateEnclosureInput {
   photoUrl: String
   status: String
   limits: LimitsInput
+  tempMin: Float
+  tempMax: Float
+  humidityMin: Float
+  humidityMax: Float
+  noiseMax: Float
+  luminosityMax: Float
 }
 
 type Query {

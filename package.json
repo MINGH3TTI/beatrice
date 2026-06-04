@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/index.js",
     "test": "node --test",
-    "check": "find src -name '*.js' -print0 | xargs -0 -n1 node --check"
+    "check": "node -e \"const fs=require('fs'),cp=require('child_process');function walk(d){for(const e of fs.readdirSync(d,{withFileTypes:true})){const p=d+'/'+e.name;if(e.isDirectory())walk(p);else if(p.endsWith('.js'))cp.execFileSync(process.execPath,['--check',p],{stdio:'inherit'});}}walk('src');\""
   },
   "keywords": [],
   "author": "",

@@ -1,6 +1,6 @@
 const db = require('../../config/firebase');
 const { collaboratorMapper } = require('./mapper');
-const { requireAuth, requireAdmin } = require('../../utils/auth');
+const { requireAuth, requireAdmin, isAdminRole } = require('../../utils/auth');
 
 const collaboratorQueries = {
   collaborators: async (_, args, context) => {
@@ -17,7 +17,7 @@ const collaboratorQueries = {
 
   collaborator: async (_, { id }, context) => {
     const user = requireAuth(context);
-    if (user.id !== id && user.role !== 'admin' && user.role !== 'gestor') {
+    if (user.id !== id && !isAdminRole(user.role)) {
       throw new Error('Acesso negado.');
     }
 
@@ -53,7 +53,7 @@ const collaboratorQueries = {
 
   enclosuresByCollaborator: async (_, { collaboratorId }, context) => {
     const user = requireAuth(context);
-    if (user.id !== collaboratorId && user.role !== 'admin' && user.role !== 'gestor') {
+    if (user.id !== collaboratorId && !isAdminRole(user.role)) {
       throw new Error('Acesso negado.');
     }
 

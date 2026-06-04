@@ -1,6 +1,7 @@
 type Variant {
     id: ID
     enclosureId: ID
+    enclosureName: String
     temp: Float
     humidity: Float
     noise: Float
@@ -62,6 +63,7 @@ type Query {
     enclosureHistory(enclosureId: ID!, limit: Int, cursor: String): VariantPage
     globalHistory(limit: Int, cursor: String): VariantPage
     globalDashboard(historyLimit: Int): GlobalDashboard
+    exportHistory(enclosureId: ID, limit: Int): [Variant]
 }
 
 type Mutation {

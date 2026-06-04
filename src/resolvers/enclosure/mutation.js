@@ -47,7 +47,7 @@ const enclosureMutations = {
       const newEnclosureRef = db.collection('enclosures').doc();
       const newEnclosure = {
         id: newEnclosureRef.id,
-        ...input,
+        ...normalizeEnclosureInput(input),
         lastReadings: null,
       };
       await newEnclosureRef.set(newEnclosure);
@@ -74,7 +74,7 @@ const enclosureMutations = {
         throw new Error('Recinto não encontrado.');
       }
       
-      await enclosureRef.update(input);
+      await enclosureRef.update(normalizeEnclosureInput(input));
       const updatedDoc = await enclosureRef.get();
       return enclosureMapper(updatedDoc);
     } catch (error) {
@@ -122,5 +122,49 @@ const enclosureMutations = {
     }
   }
 };
+
+function normalizeEnclosureInput(input) {
+  const {
+    tempMin,
+    tempMax,
+    humidityMin,
+    humidityMax,
+    noiseMax,
+    luminosityMax,
+    ...rest
+  } = input;
+
+  const hasFlatLimits = [
+    tempMin,
+    tempMax,
+    humidityMin,
+    humidityMax,
+    noiseMax,
+    luminosityMax
+  ].some(value => value !== undefined);
+
+  const limits = rest.limits || hasFlatLimits ? normalizeLimitsInput(rest.limits || {
+    tempMin,
+    tempMax,
+    humidityMin,
+    humidityMax,
+    noiseMax,
+    luminosityMax
+  }) : undefined;
+
+  return limits === undefined ? rest : { ...rest, limits };
+}
+
+function normalizeLimitsInput(limits) {
+  if (!limits) return null;
+  return {
+    tempMin: limits.tempMin,
+    tempMax: limits.tempMax,
+    humidityMin: limits.humidityMin,
+    humidityMax: limits.humidityMax,
+    noiseMax: limits.noiseMax,
+    luminosityMax: limits.luminosityMax
+  };
+}
 
 module.exports = enclosureMutations;
