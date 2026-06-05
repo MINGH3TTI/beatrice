@@ -1,6 +1,7 @@
 const db = require('../../config/firebase');
 const { alertMapper } = require('./mapper');
 const { requireAuth, requireAdmin, isAdminRole } = require('../../utils/auth');
+const { notifyAlertCreated } = require('../../services/notifications');
 
 const seedAlertsData = [
   {
@@ -54,8 +55,10 @@ const alertMutations = {
 
       const docRef = await db.collection('alerts').add(newAlert);
       const savedDoc = await docRef.get();
+      const savedAlert = alertMapper(savedDoc);
+      await notifyAlertCreated(savedAlert);
 
-      return alertMapper(savedDoc);
+      return savedAlert;
     } catch (error) {
       console.error('Erro ao criar alerta:', error);
       throw new Error('Erro ao criar alerta.');

@@ -1,0 +1,29 @@
+type NotificationPreferences {
+  pushEnabled: Boolean!
+  criticalVibrationEnabled: Boolean!
+}
+
+input NotificationPreferencesInput {
+  pushEnabled: Boolean
+  criticalVibrationEnabled: Boolean
+}
+
+type PushDevice {
+  id: ID!
+  token: String!
+  platform: String!
+  enabled: Boolean!
+  createdAt: String
+  updatedAt: String
+  lastSeenAt: String
+}
+
+type Query {
+  notificationPreferences: NotificationPreferences!
+}
+
+type Mutation {
+  updateNotificationPreferences(input: NotificationPreferencesInput!): NotificationPreferences!
+  registerPushDevice(token: String!, platform: String!): PushDevice!
+  unregisterPushDevice(token: String!): Boolean!
+}

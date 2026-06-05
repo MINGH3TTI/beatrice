@@ -1,6 +1,7 @@
 const db = require('../../config/firebase');
 const { variantMapper } = require('./mapper');
-const { calculateStatus } = require('../enclosure/mapper');
+const { calculateStatus, normalizeLimits } = require('../enclosure/mapper');
+const { createAlertIfMissing, detectAlertVariable } = require('../../services/alert-rules');
 
 const variantMutations = {
   createVariant: async (_, { input }) => {
@@ -19,11 +20,22 @@ const variantMutations = {
 
       if (enclosureDoc.exists) {
         const enclosure = enclosureDoc.data();
-        const status = calculateStatus(savedVariant, enclosure.limits);
+        const limits = normalizeLimits(enclosure.limits);
+        const status = calculateStatus(savedVariant, limits);
         await enclosureRef.update({
           lastReadings: savedVariant,
           status
         });
+
+        if (status === 'warning' || status === 'critical') {
+          const variable = detectAlertVariable(savedVariant, limits);
+          await createAlertIfMissing({
+            enclosureId: input.enclosureId,
+            enclosureName: enclosure.name || savedVariant.enclosureName || '',
+            variable,
+            severity: status
+          });
+        }
       }
 
       return savedVariant;
