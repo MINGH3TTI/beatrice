@@ -50,6 +50,7 @@ type Mutation {
   forgotPassword(email: String!): ForgotPasswordResponse!
   createCollaborator(input: CreateCollaboratorInput!): Collaborator
   updateCollaborator(id: ID!, input: UpdateCollaboratorInput!): Collaborator
+  updatePassword(id: ID!, password: String!): Collaborator
   deleteCollaborator(id: ID!): DeleteResult
   assignEnclosureToCollaborator(collaboratorId: ID!, enclosureId: ID!): Collaborator
   removeEnclosureFromCollaborator(collaboratorId: ID!, enclosureId: ID!): Collaborator

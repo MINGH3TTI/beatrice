@@ -167,6 +167,35 @@ const collaboratorMutations = {
     }
   },
 
+  updatePassword: async (_, { id, password }, context) => {
+    requireAdmin(context);
+
+    try {
+      if (!password || password.length < 6) {
+        throw new Error('A senha deve ter pelo menos 6 caracteres.');
+      }
+
+      const collabRef = db.collection('collaborators').doc(id);
+      const collabDoc = await collabRef.get();
+
+      if (!collabDoc.exists) {
+        throw new Error('Colaborador não encontrado.');
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+      await collabRef.update({
+        password: hashedPassword,
+        updatedAt: new Date().toISOString()
+      });
+
+      const updatedDoc = await collabRef.get();
+      return collaboratorMapper(updatedDoc);
+    } catch (error) {
+      console.error('Erro ao atualizar senha do colaborador:', error);
+      throw new Error(error.message);
+    }
+  },
+
   deleteCollaborator: async (_, { id }, context) => {
     requireAdmin(context);
 
