@@ -1,5 +1,5 @@
 const db = require('../../config/firebase');
-const { collaboratorMapper } = require('./mapper');
+const { collaboratorMapper, passwordResetRequestMapper } = require('./mapper');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { getJwtSecret, requireAdmin } = require('../../utils/auth');
@@ -90,23 +90,47 @@ const collaboratorMutations = {
 
   forgotPassword: async (_, { email }) => {
     try {
+      const normalizedEmail = String(email || '').trim().toLowerCase();
       const snapshot = await db.collection('collaborators')
-        .where('email', '==', email)
+        .where('email', '==', normalizedEmail)
         .limit(1)
         .get();
 
-      if (snapshot.empty) {
+      if (!snapshot.empty) {
+        const collabDoc = snapshot.docs[0];
+        const collabData = collabDoc.data();
+        const pendingSnapshot = await db.collection('passwordResetRequests')
+          .where('collaboratorId', '==', collabDoc.id)
+          .where('status', '==', 'PENDING')
+          .limit(1)
+          .get();
+
+        if (!pendingSnapshot.empty) {
+          return {
+            success: false,
+            message: 'Ja existe uma solicitacao pendente para este colaborador.'
+          };
+        }
+
+        await db.collection('passwordResetRequests').add({
+          collaboratorId: collabDoc.id,
+          email: collabData.email || normalizedEmail,
+          collaboratorName: collabData.name || '',
+          status: 'PENDING',
+          createdAt: new Date().toISOString(),
+          completedAt: null,
+          completedBy: null
+        });
+
         return {
-          success: false,
-          message: 'E-mail não encontrado em nossa base.'
+          success: true,
+          message: 'Solicitacao enviada ao gestor para troca de senha.'
         };
       }
 
-      // TODO: Implementar lógica de envio de e-mail de recuperação
-      
       return {
-        success: true,
-        message: 'E-mail de recuperação enviado com sucesso!'
+        success: false,
+        message: 'E-mail não encontrado em nossa base.'
       };
     } catch (error) {
       console.error('Erro no forgotPassword:', error);
@@ -192,6 +216,55 @@ const collaboratorMutations = {
       return collaboratorMapper(updatedDoc);
     } catch (error) {
       console.error('Erro ao atualizar senha do colaborador:', error);
+      throw new Error(error.message);
+    }
+  },
+
+  completePasswordResetRequest: async (_, { id, newPassword }, context) => {
+    const admin = requireAdmin(context);
+
+    try {
+      if (!newPassword || newPassword.length < 6) {
+        throw new Error('A senha deve ter pelo menos 6 caracteres.');
+      }
+
+      const requestRef = db.collection('passwordResetRequests').doc(id);
+      const requestDoc = await requestRef.get();
+
+      if (!requestDoc.exists) {
+        throw new Error('Solicitacao nao encontrada.');
+      }
+
+      const requestData = requestDoc.data();
+      if (requestData.status === 'COMPLETED') {
+        throw new Error('Solicitacao ja concluida.');
+      }
+
+      const collabRef = db.collection('collaborators').doc(requestData.collaboratorId);
+      const collabDoc = await collabRef.get();
+
+      if (!collabDoc.exists) {
+        throw new Error('Colaborador nao encontrado.');
+      }
+
+      const now = new Date().toISOString();
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      await collabRef.update({
+        password: hashedPassword,
+        updatedAt: now
+      });
+
+      await requestRef.update({
+        status: 'COMPLETED',
+        completedAt: now,
+        completedBy: admin.id || admin.email || 'admin'
+      });
+
+      const updatedRequestDoc = await requestRef.get();
+      return passwordResetRequestMapper(updatedRequestDoc);
+    } catch (error) {
+      console.error('Erro ao concluir solicitacao de senha:', error);
       throw new Error(error.message);
     }
   },

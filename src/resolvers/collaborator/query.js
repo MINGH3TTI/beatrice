@@ -1,5 +1,5 @@
 const db = require('../../config/firebase');
-const { collaboratorMapper } = require('./mapper');
+const { collaboratorMapper, passwordResetRequestMapper } = require('./mapper');
 const { requireAuth, requireAdmin, isAdminRole } = require('../../utils/auth');
 
 const collaboratorQueries = {
@@ -90,6 +90,26 @@ const collaboratorQueries = {
     } catch (error) {
       console.error('Erro ao buscar recintos do colaborador:', error);
       throw new Error('Erro ao carregar recintos.');
+    }
+  },
+
+  passwordResetRequests: async (_, { status }, context) => {
+    requireAdmin(context);
+
+    try {
+      let query = db.collection('passwordResetRequests');
+
+      if (status) {
+        query = query.where('status', '==', status);
+      }
+
+      const snapshot = await query.get();
+      return snapshot.docs
+        .map(doc => passwordResetRequestMapper(doc))
+        .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+    } catch (error) {
+      console.error('Erro ao buscar solicitacoes de senha:', error);
+      throw new Error('Erro ao carregar solicitacoes de troca de senha.');
     }
   }
 };

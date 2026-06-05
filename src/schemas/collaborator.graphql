@@ -28,6 +28,7 @@ type Query {
   collaborator(id: ID!): Collaborator
   myProfile: Collaborator
   enclosuresByCollaborator(collaboratorId: ID!): [Enclosure]
+  passwordResetRequests(status: PasswordResetRequestStatus): [PasswordResetRequest!]!
 }
 
 type AuthPayload {
@@ -38,6 +39,22 @@ type AuthPayload {
 type ForgotPasswordResponse {
   success: Boolean!
   message: String!
+}
+
+enum PasswordResetRequestStatus {
+  PENDING
+  COMPLETED
+}
+
+type PasswordResetRequest {
+  id: ID!
+  collaboratorId: ID!
+  collaboratorName: String
+  email: String!
+  status: PasswordResetRequestStatus!
+  createdAt: String!
+  completedAt: String
+  completedBy: String
 }
 
 type DeleteResult {
@@ -51,6 +68,7 @@ type Mutation {
   createCollaborator(input: CreateCollaboratorInput!): Collaborator
   updateCollaborator(id: ID!, input: UpdateCollaboratorInput!): Collaborator
   updatePassword(id: ID!, password: String!): Collaborator
+  completePasswordResetRequest(id: ID!, newPassword: String!): PasswordResetRequest!
   deleteCollaborator(id: ID!): DeleteResult
   assignEnclosureToCollaborator(collaboratorId: ID!, enclosureId: ID!): Collaborator
   removeEnclosureFromCollaborator(collaboratorId: ID!, enclosureId: ID!): Collaborator

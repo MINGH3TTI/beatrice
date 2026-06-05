@@ -16,4 +16,18 @@ const collaboratorMapper = (doc) => {
   };
 };
 
-module.exports = { collaboratorMapper, normalizeRole };
+const passwordResetRequestMapper = (doc) => {
+  const data = doc.data ? doc.data() : doc;
+  return {
+    id: doc.id,
+    collaboratorId: data.collaboratorId || '',
+    collaboratorName: data.collaboratorName || '',
+    email: data.email || '',
+    status: data.status || 'PENDING',
+    createdAt: data.createdAt || new Date().toISOString(),
+    completedAt: data.completedAt || null,
+    completedBy: data.completedBy || null
+  };
+};
+
+module.exports = { collaboratorMapper, normalizeRole, passwordResetRequestMapper };
