@@ -3,6 +3,7 @@ type Collaborator {
   email: String!
   name: String
   role: String
+  badgeId: String
   assignedEnclosures: [String]
   createdAt: String
   updatedAt: String
@@ -20,6 +21,7 @@ input CreateCollaboratorInput {
 input UpdateCollaboratorInput {
   name: String
   role: String
+  badgeId: String
   assignedEnclosures: [String]
 }
 

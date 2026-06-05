@@ -147,15 +147,17 @@ const collaboratorMutations = {
     try {
       const hashedPassword = input.password ? await bcrypt.hash(input.password, 10) : null;
 
+      const docRef = db.collection('collaborators').doc();
       const newCollaborator = {
         ...input,
+        badgeId: input.badgeId || `BADGE_${docRef.id}`,
         password: hashedPassword,
         assignedEnclosures: input.assignedEnclosures || [],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
 
-      const docRef = await db.collection('collaborators').add(newCollaborator);
+      await docRef.set(newCollaborator);
       const savedDoc = await docRef.get();
 
       return collaboratorMapper(savedDoc);

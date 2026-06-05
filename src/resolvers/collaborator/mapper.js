@@ -10,6 +10,7 @@ const collaboratorMapper = (doc) => {
     email: data.email || '',
     name: data.name || '',
     role: normalizeRole(data.role),
+    badgeId: data.badgeId || '',
     assignedEnclosures: data.assignedEnclosures || [],
     createdAt: data.createdAt || new Date().toISOString(),
     updatedAt: data.updatedAt || new Date().toISOString()
