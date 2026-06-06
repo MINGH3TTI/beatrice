@@ -1,5 +1,5 @@
 const db = require('../../config/firebase');
-const { enclosureMapper } = require('./mapper');
+const { enclosureMapper, normalizeLimits } = require('./mapper');
 const { requireAuth, isAdminRole } = require('../../utils/auth');
 
 const enclosureQueries = {
@@ -61,6 +61,20 @@ const enclosureQueries = {
     } catch (error) {
       console.error('Erro detalhado ao buscar recinto:', error);
       throw new Error(`Erro ao carregar recinto: ${error.message}`);
+    }
+  },
+
+  enclosureLimits: async (_, { id }) => {
+    try {
+      const doc = await db.collection('enclosures').doc(id).get();
+      if (!doc.exists) {
+        throw new Error('Recinto nÃ£o encontrado.');
+      }
+
+      return normalizeLimits(doc.data().limits);
+    } catch (error) {
+      console.error('Erro detalhado ao buscar limites do recinto:', error);
+      throw new Error(`Erro ao carregar limites do recinto: ${error.message}`);
     }
   }
 };

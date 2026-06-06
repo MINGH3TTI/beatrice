@@ -72,6 +72,7 @@ input UpdateEnclosureInput {
 type Query {
   enclosures(operatorId: ID): [Enclosure]
   enclosure(id: ID!): Enclosure
+  enclosureLimits(id: ID!): Limits
 }
 
 type Mutation {
