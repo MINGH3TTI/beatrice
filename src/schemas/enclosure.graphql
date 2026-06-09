@@ -1,4 +1,5 @@
 type Actuator {
+  enclosureId: ID
   fan: Boolean
   nebulizer: Boolean
   heater: Boolean

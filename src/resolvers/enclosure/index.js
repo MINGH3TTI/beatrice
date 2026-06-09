@@ -11,15 +11,25 @@ const enclosureResolvers = {
   Mutation: enclosureMutations,
   Enclosure: {
     actuators: async (enclosure) => {
-      if (enclosure.actuators) return enclosure.actuators;
-
       try {
         const actuatorsDoc = await db.collection('actuators').doc(enclosure.id).get();
-        return actuatorsDoc.exists ? { ...DEFAULT_ACTUATORS, ...actuatorsDoc.data() } : DEFAULT_ACTUATORS;
+        if (actuatorsDoc.exists) {
+          return normalizeActuators(enclosure.id, actuatorsDoc.data());
+        }
+
+        const actuatorsSnapshot = await db.collection('actuators')
+          .where('enclosureId', '==', enclosure.id)
+          .limit(1)
+          .get();
+
+        if (!actuatorsSnapshot.empty) {
+          return normalizeActuators(enclosure.id, actuatorsSnapshot.docs[0].data());
+        }
       } catch (error) {
         console.error(`Erro ao buscar atuadores para o recinto ${enclosure.id}:`, error);
-        return DEFAULT_ACTUATORS;
       }
+
+      return normalizeActuators(enclosure.id, enclosure.actuators);
     },
     lastReadings: async (enclosure) => {
       if (enclosure.lastReadings) return enclosure.lastReadings;
@@ -62,5 +72,13 @@ const enclosureResolvers = {
     }
   }
 };
+
+function normalizeActuators(enclosureId, actuators) {
+  return {
+    enclosureId,
+    ...DEFAULT_ACTUATORS,
+    ...(actuators || {})
+  };
+}
 
 module.exports = enclosureResolvers;

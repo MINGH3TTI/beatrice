@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const path = require('node:path');
 
 const enclosureMutationPath = path.resolve(__dirname, '../src/resolvers/enclosure/mutation.js');
+const enclosureResolverPath = path.resolve(__dirname, '../src/resolvers/enclosure/index.js');
 const firebasePath = path.resolve(__dirname, '../src/config/firebase.js');
 
 function loadMutationsWithDb(db) {
@@ -18,6 +19,20 @@ function loadMutationsWithDb(db) {
   return require(enclosureMutationPath);
 }
 
+function loadResolversWithDb(db) {
+  delete require.cache[enclosureMutationPath];
+  delete require.cache[enclosureResolverPath];
+
+  require.cache[firebasePath] = {
+    id: firebasePath,
+    filename: firebasePath,
+    loaded: true,
+    exports: db
+  };
+
+  return require(enclosureResolverPath);
+}
+
 function createDoc(id, data) {
   return {
     id,
@@ -27,6 +42,30 @@ function createDoc(id, data) {
 }
 
 function createCollection(docs) {
+  const createQuery = (filters = [], max = null) => ({
+    where(field, operator, value) {
+      assert.equal(operator, '==');
+      return createQuery([...filters, { field, value }], max);
+    },
+    limit(limitValue) {
+      return createQuery(filters, limitValue);
+    },
+    async get() {
+      let entries = [...docs.entries()]
+        .filter(([, data]) => filters.every(filter => data[filter.field] === filter.value));
+
+      if (max !== null) {
+        entries = entries.slice(0, max);
+      }
+
+      const resultDocs = entries.map(([id, data]) => createDoc(id, data));
+      return {
+        empty: resultDocs.length === 0,
+        docs: resultDocs
+      };
+    }
+  });
+
   return {
     doc(id) {
       return {
@@ -37,6 +76,9 @@ function createCollection(docs) {
           docs.set(id, data);
         }
       };
+    },
+    where(field, operator, value) {
+      return createQuery().where(field, operator, value);
     }
   };
 }
@@ -77,6 +119,7 @@ test('updateActuatorStateFromEsp32 sets actuator state to true and preserves oth
     message: 'Atuador fan ativado pelo ESP32 com sucesso.'
   });
   assert.deepEqual(actuators.get('enc-1'), {
+    enclosureId: 'enc-1',
     fan: true,
     nebulizer: true,
     heater: false,
@@ -104,6 +147,7 @@ test('updateActuatorStateFromEsp32 sets actuator state to false', async () => {
     message: 'Atuador fan desativado pelo ESP32 com sucesso.'
   });
   assert.deepEqual(actuators.get('enc-1'), {
+    enclosureId: 'enc-1',
     fan: false,
     nebulizer: false,
     heater: false,
@@ -126,6 +170,7 @@ test('updateActuatorStateFromEsp32 creates default actuator document when missin
 
   assert.equal(result.success, true);
   assert.deepEqual(actuators.get('enc-1'), {
+    enclosureId: 'enc-1',
     fan: false,
     nebulizer: false,
     heater: true,
@@ -160,5 +205,42 @@ test('updateActuatorStateFromEsp32 rejects missing enclosure', async () => {
   assert.deepEqual(result, {
     success: false,
     message: 'Recinto nao encontrado.'
+  });
+});
+
+test('Enclosure.actuators resolver prefers actuator document over mapped defaults', async () => {
+  const actuators = new Map([
+    ['enc-1', { fan: true, nebulizer: false, heater: true, lamp: false }]
+  ]);
+  const resolvers = loadResolversWithDb(createDb({ actuators }));
+
+  const result = await resolvers.Enclosure.actuators({
+    id: 'enc-1',
+    actuators: { fan: false, nebulizer: false, heater: false, lamp: false }
+  });
+
+  assert.deepEqual(result, {
+    enclosureId: 'enc-1',
+    fan: true,
+    nebulizer: false,
+    heater: true,
+    lamp: false
+  });
+});
+
+test('Enclosure.actuators resolver can find actuator document by enclosureId field', async () => {
+  const actuators = new Map([
+    ['actuator-doc-1', { enclosureId: 'enc-1', fan: false, nebulizer: true, heater: false, lamp: true }]
+  ]);
+  const resolvers = loadResolversWithDb(createDb({ actuators }));
+
+  const result = await resolvers.Enclosure.actuators({ id: 'enc-1' });
+
+  assert.deepEqual(result, {
+    enclosureId: 'enc-1',
+    fan: false,
+    nebulizer: true,
+    heater: false,
+    lamp: true
   });
 });

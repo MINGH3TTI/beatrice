@@ -22,8 +22,8 @@ const enclosureMutations = {
       const actuatorsRef = db.collection('actuators').doc(enclosureId);
       const actuatorsDoc = await actuatorsRef.get();
       const currentActuators = actuatorsDoc.exists
-        ? { ...DEFAULT_ACTUATORS, ...actuatorsDoc.data() }
-        : { ...DEFAULT_ACTUATORS };
+        ? { ...DEFAULT_ACTUATORS, ...actuatorsDoc.data(), enclosureId }
+        : { ...DEFAULT_ACTUATORS, enclosureId };
 
       currentActuators[actuatorType] = state;
       await actuatorsRef.set(currentActuators);
@@ -50,7 +50,10 @@ const enclosureMutations = {
       };
       await newEnclosureRef.set(newEnclosure);
 
-      await db.collection('actuators').doc(newEnclosureRef.id).set({ ...DEFAULT_ACTUATORS });
+      await db.collection('actuators').doc(newEnclosureRef.id).set({
+        enclosureId: newEnclosureRef.id,
+        ...DEFAULT_ACTUATORS
+      });
 
       return enclosureMapper(newEnclosure);
     } catch (error) {
@@ -105,7 +108,7 @@ const enclosureMutations = {
         await db.collection('enclosures').doc(id).set(enclosureToSave);
 
         const actuators = seedActuatorsData[id] || DEFAULT_ACTUATORS;
-        await db.collection('actuators').doc(id).set({ ...actuators });
+        await db.collection('actuators').doc(id).set({ enclosureId: id, ...actuators });
 
         createdEnclosures.push(enclosureMapper(enclosureToSave));
       }
