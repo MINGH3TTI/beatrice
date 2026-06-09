@@ -11,7 +11,6 @@ type Limits {
   humidityMin: Float
   humidityMax: Float
   noiseMax: Float
-  luminosityMax: Float
 }
 
 
@@ -38,7 +37,6 @@ input LimitsInput {
   humidityMin: Float
   humidityMax: Float
   noiseMax: Float
-  luminosityMax: Float
 }
 
 input CreateEnclosureInput {
@@ -52,7 +50,6 @@ input CreateEnclosureInput {
   humidityMin: Float
   humidityMax: Float
   noiseMax: Float
-  luminosityMax: Float
 }
 
 input UpdateEnclosureInput {
@@ -66,7 +63,6 @@ input UpdateEnclosureInput {
   humidityMin: Float
   humidityMax: Float
   noiseMax: Float
-  luminosityMax: Float
 }
 
 type Query {
@@ -76,7 +72,7 @@ type Query {
 }
 
 type Mutation {
-  toggleActuator(enclosureId: ID!, actuatorType: String!, state: Boolean!): ToggleActuatorResult
+  updateActuatorStateFromEsp32(enclosureId: ID!, actuatorType: String!, state: Boolean!): ToggleActuatorResult
   createEnclosure(input: CreateEnclosureInput!): Enclosure
   updateEnclosure(id: ID!, input: UpdateEnclosureInput!): Enclosure
   deleteEnclosure(id: ID!): DeleteResult

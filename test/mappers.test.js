@@ -37,7 +37,7 @@ test('enclosureMapper returns actuator defaults and calculated status', () => {
       name: 'Galinheiro',
       speciesId: 'Gallus gallus domesticus',
       lastReadings: { temp: 40, humidity: 60, noise: 85, luminosity: 1000 },
-      limits: { tempMin: 18, tempMax: 30, humidityMin: 40, humidityMax: 80, noiseMax: 70, luminosityMax: 900 }
+      limits: { tempMin: 18, tempMax: 30, humidityMin: 40, humidityMax: 80, noiseMax: 70 }
     })
   });
 
@@ -46,11 +46,11 @@ test('enclosureMapper returns actuator defaults and calculated status', () => {
 });
 
 test('calculateStatus classifies ok, warning, and critical ranges', () => {
-  const limits = { tempMin: 18, tempMax: 30, humidityMin: 40, humidityMax: 80, noiseMax: 70, luminosityMax: 900 };
+  const limits = { tempMin: 18, tempMax: 30, humidityMin: 40, humidityMax: 80, noiseMax: 70 };
 
   assert.equal(calculateStatus({ temp: 25, humidity: 60 }, limits), 'ok');
   assert.equal(calculateStatus({ temp: 31, humidity: 60 }, limits), 'warning');
   assert.equal(calculateStatus({ temp: 36, humidity: 60 }, limits), 'critical');
   assert.equal(calculateStatus({ temp: 25, humidity: 60, noise: 75 }, limits), 'warning');
-  assert.equal(calculateStatus({ temp: 25, humidity: 60, luminosity: 1100 }, limits), 'critical');
+  assert.equal(calculateStatus({ temp: 25, humidity: 60, luminosity: 1100 }, limits), 'ok');
 });

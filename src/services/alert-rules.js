@@ -2,6 +2,8 @@ const db = require('../config/firebase');
 const { alertMapper } = require('../resolvers/alert/mapper');
 const { notifyAlertCreated } = require('./notifications');
 
+const ALERT_COOLDOWN_MS = 5 * 60 * 1000;
+
 function detectAlertVariable(reading, limits) {
   if (!reading || !limits) {
     return null;
@@ -12,7 +14,6 @@ function detectAlertVariable(reading, limits) {
   addOutOfRangeVariable(variables, 'Temperatura', reading.temp, limits.tempMin, limits.tempMax);
   addOutOfRangeVariable(variables, 'Umidade', reading.humidity, limits.humidityMin, limits.humidityMax);
   addMaxVariable(variables, 'Ruido', reading.noise, limits.noiseMax);
-  addMaxVariable(variables, 'Luminosidade', reading.luminosity, limits.luminosityMax);
 
   if (variables.length === 0) {
     return null;
@@ -23,6 +24,10 @@ function detectAlertVariable(reading, limits) {
 
 async function createAlertIfMissing({ enclosureId, enclosureName, variable, severity }) {
   if (!enclosureId || !variable || !severity || severity === 'ok') {
+    return null;
+  }
+
+  if (await isEnclosureMuted(enclosureId)) {
     return null;
   }
 
@@ -56,6 +61,38 @@ async function createAlertIfMissing({ enclosureId, enclosureName, variable, seve
   return savedAlert;
 }
 
+async function muteEnclosureAlerts(enclosureId, resolvedBy) {
+  if (!enclosureId) {
+    return null;
+  }
+
+  const now = new Date();
+  const mutedUntil = new Date(now.getTime() + ALERT_COOLDOWN_MS).toISOString();
+
+  await db.collection('alertCooldowns').doc(enclosureId).set({
+    enclosureId,
+    mutedUntil,
+    updatedAt: now.toISOString(),
+    updatedBy: resolvedBy || null
+  });
+
+  return mutedUntil;
+}
+
+async function isEnclosureMuted(enclosureId, now = new Date()) {
+  if (!enclosureId) {
+    return false;
+  }
+
+  const cooldownDoc = await db.collection('alertCooldowns').doc(enclosureId).get();
+  if (!cooldownDoc.exists) {
+    return false;
+  }
+
+  const mutedUntil = new Date(cooldownDoc.data().mutedUntil).getTime();
+  return Number.isFinite(mutedUntil) && mutedUntil > now.getTime();
+}
+
 function addOutOfRangeVariable(variables, label, value, min, max) {
   if (!isNumber(value)) {
     return;
@@ -77,6 +114,9 @@ function isNumber(value) {
 }
 
 module.exports = {
+  ALERT_COOLDOWN_MS,
   detectAlertVariable,
-  createAlertIfMissing
+  createAlertIfMissing,
+  muteEnclosureAlerts,
+  isEnclosureMuted
 };

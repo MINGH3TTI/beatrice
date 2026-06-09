@@ -81,6 +81,9 @@ function createCollection(docs) {
             throw new Error('not-found');
           }
           docs.set(id, { ...current, ...updateData });
+        },
+        async set(data) {
+          docs.set(id, data);
         }
       };
     },
@@ -108,6 +111,7 @@ function createDb({
   collaborators = new Map(),
   pushDevices = new Map(),
   alerts = new Map(),
+  alertCooldowns = new Map(),
   variants = new Map(),
   enclosures = new Map(),
   sentMessages = []
@@ -116,6 +120,7 @@ function createDb({
     collaborators,
     pushDevices,
     alerts,
+    alertCooldowns,
     variants,
     enclosures
   };
@@ -237,6 +242,33 @@ test('createAlert sends FCM to admins and collaborators assigned to enclosure', 
   assert.deepEqual(sentMessages[0].tokens.sort(), ['admin-token', 'collab-token']);
 });
 
+test('resolveAlert mutes new alerts for the enclosure for five minutes', async () => {
+  const alerts = new Map([
+    ['alert-1', {
+      enclosureId: 'rec-1',
+      enclosureName: 'Recinto 1',
+      variable: 'Temperatura',
+      severity: 'critical',
+      timestamp: '2026-06-09T10:00:00.000Z',
+      resolved: false
+    }]
+  ]);
+  const alertCooldowns = new Map();
+  const mutations = loadModuleWithDb(alertMutationPath, createDb({
+    alerts,
+    alertCooldowns
+  }));
+
+  const result = await mutations.resolveAlert(null, { alertId: 'alert-1' }, context({ id: 'admin-1', role: 'ADMIN' }));
+
+  assert.equal(result.resolved, true);
+  assert.equal(alerts.get('alert-1').resolvedBy, 'admin-1');
+  assert.ok(alerts.get('alert-1').resolvedAt);
+  assert.equal(alertCooldowns.get('rec-1').enclosureId, 'rec-1');
+  assert.equal(alertCooldowns.get('rec-1').updatedBy, 'admin-1');
+  assert.ok(new Date(alertCooldowns.get('rec-1').mutedUntil).getTime() > Date.now());
+});
+
 test('createVariant creates one alert for out-of-limit reading without duplicating active equivalent', async () => {
   const sentMessages = [];
   const enclosures = new Map([
@@ -247,8 +279,7 @@ test('createVariant creates one alert for out-of-limit reading without duplicati
         tempMax: 30,
         humidityMin: 40,
         humidityMax: 80,
-        noiseMax: 70,
-        luminosityMax: 900
+        noiseMax: 70
       }
     }]
   ]);
@@ -279,4 +310,48 @@ test('createVariant creates one alert for out-of-limit reading without duplicati
   const alert = [...alerts.values()][0];
   assert.equal(alert.variable, 'Temperatura');
   assert.equal(alert.severity, 'critical');
+});
+
+test('createVariant does not create or notify alerts while enclosure is muted', async () => {
+  const sentMessages = [];
+  const enclosures = new Map([
+    ['rec-1', {
+      name: 'Recinto 1',
+      limits: {
+        tempMin: 10,
+        tempMax: 30,
+        humidityMin: 40,
+        humidityMax: 80,
+        noiseMax: 70
+      }
+    }]
+  ]);
+  const alerts = new Map();
+  const mutations = loadModuleWithDb(variantMutationPath, createDb({
+    enclosures,
+    alerts,
+    alertCooldowns: new Map([
+      ['rec-1', {
+        enclosureId: 'rec-1',
+        mutedUntil: '2999-01-01T00:00:00.000Z'
+      }]
+    ]),
+    variants: new Map(),
+    collaborators: new Map(),
+    pushDevices: new Map(),
+    sentMessages
+  }));
+
+  await mutations.createVariant(null, {
+    input: {
+      enclosureId: 'rec-1',
+      temp: 40,
+      humidity: 60,
+      noise: 50,
+      luminosity: 500
+    }
+  });
+
+  assert.equal(alerts.size, 0);
+  assert.equal(sentMessages.length, 0);
 });

@@ -48,8 +48,7 @@ test('enclosureLimits returns normalized limits without auth context', async () 
         tempMax: 30,
         humidityMin: 40,
         humidityMax: 80,
-        noiseLimit: 70,
-        luminosityLimit: 900
+        noiseLimit: 70
       }
     }]
   ])));
@@ -61,8 +60,7 @@ test('enclosureLimits returns normalized limits without auth context', async () 
     tempMax: 30,
     humidityMin: 40,
     humidityMax: 80,
-    noiseMax: 70,
-    luminosityMax: 900
+    noiseMax: 70
   });
 });
 

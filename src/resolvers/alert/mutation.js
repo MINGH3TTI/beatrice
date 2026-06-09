@@ -2,6 +2,7 @@ const db = require('../../config/firebase');
 const { alertMapper } = require('./mapper');
 const { requireAuth, requireAdmin, isAdminRole } = require('../../utils/auth');
 const { notifyAlertCreated } = require('../../services/notifications');
+const { muteEnclosureAlerts } = require('../../services/alert-rules');
 
 const seedAlertsData = [
   {
@@ -33,7 +34,15 @@ const alertMutations = {
         }
       }
 
-      await alertRef.update({ resolved: true });
+      const resolvedAt = new Date().toISOString();
+      const alertData = alertDoc.data();
+
+      await alertRef.update({
+        resolved: true,
+        resolvedAt,
+        resolvedBy: user.id
+      });
+      await muteEnclosureAlerts(alertData.enclosureId, user.id);
 
       const updatedDoc = await alertRef.get();
       return alertMapper(updatedDoc);

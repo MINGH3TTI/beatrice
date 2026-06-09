@@ -1,42 +1,40 @@
 const db = require('../../config/firebase');
 const { enclosureMapper } = require('./mapper');
-const { requireAuth, requireAdmin, isAdminRole } = require('../../utils/auth');
+const { requireAdmin } = require('../../utils/auth');
 const seedEnclosuresData = require('../../../seeds-enclosures.json');
 const seedActuatorsData = require('../../../seeds-actuators.json');
 
-const enclosureMutations = {
-  toggleActuator: async (_, { enclosureId, actuatorType, state }, context) => {
-    const user = requireAuth(context);
+const DEFAULT_ACTUATORS = { fan: false, nebulizer: false, heater: false, lamp: false };
+const VALID_ACTUATORS = Object.keys(DEFAULT_ACTUATORS);
 
+const enclosureMutations = {
+  updateActuatorStateFromEsp32: async (_, { enclosureId, actuatorType, state }) => {
     try {
-      if (!isAdminRole(user.role)) {
-        const collabDoc = await db.collection('collaborators').doc(user.id).get();
-        const assignedEnclosures = collabDoc.exists ? (collabDoc.data().assignedEnclosures || []) : [];
-        if (!assignedEnclosures.includes(enclosureId)) {
-          return { success: false, message: 'Acesso negado ao recinto.' };
-        }
+      if (!VALID_ACTUATORS.includes(actuatorType)) {
+        return { success: false, message: 'Tipo de atuador invalido.' };
       }
 
-      const validActuators = ['fan', 'nebulizer', 'heater', 'lamp'];
-      if (!validActuators.includes(actuatorType)) {
-        return { success: false, message: 'Tipo de atuador inválido.' };
+      const enclosureDoc = await db.collection('enclosures').doc(enclosureId).get();
+      if (!enclosureDoc.exists) {
+        return { success: false, message: 'Recinto nao encontrado.' };
       }
 
       const actuatorsRef = db.collection('actuators').doc(enclosureId);
       const actuatorsDoc = await actuatorsRef.get();
-
-      let currentActuators = { fan: false, nebulizer: false, heater: false, lamp: false };
-      if (actuatorsDoc.exists) {
-        currentActuators = actuatorsDoc.data();
-      }
+      const currentActuators = actuatorsDoc.exists
+        ? { ...DEFAULT_ACTUATORS, ...actuatorsDoc.data() }
+        : { ...DEFAULT_ACTUATORS };
 
       currentActuators[actuatorType] = state;
       await actuatorsRef.set(currentActuators);
 
-      return { success: true, message: `Atuador ${actuatorType} ${state ? 'ativado' : 'desativado'} com sucesso.` };
+      return {
+        success: true,
+        message: `Atuador ${actuatorType} ${state ? 'ativado' : 'desativado'} pelo ESP32 com sucesso.`
+      };
     } catch (error) {
-      console.error('Erro ao togglear atuador:', error);
-      return { success: false, message: 'Erro ao atualizar atuador.' };
+      console.error('Erro ao atualizar atuador pelo ESP32:', error);
+      return { success: false, message: 'Erro ao atualizar atuador pelo ESP32.' };
     }
   },
 
@@ -51,11 +49,9 @@ const enclosureMutations = {
         lastReadings: null,
       };
       await newEnclosureRef.set(newEnclosure);
-      
-      await db.collection('actuators').doc(newEnclosureRef.id).set({
-        fan: false, nebulizer: false, heater: false, lamp: false
-      });
-      
+
+      await db.collection('actuators').doc(newEnclosureRef.id).set({ ...DEFAULT_ACTUATORS });
+
       return enclosureMapper(newEnclosure);
     } catch (error) {
       console.error('Erro ao criar recinto:', error);
@@ -69,11 +65,11 @@ const enclosureMutations = {
     try {
       const enclosureRef = db.collection('enclosures').doc(id);
       const enclosureDoc = await enclosureRef.get();
-      
+
       if (!enclosureDoc.exists) {
         throw new Error('Recinto não encontrado.');
       }
-      
+
       await enclosureRef.update(normalizeEnclosureInput(input));
       const updatedDoc = await enclosureRef.get();
       return enclosureMapper(updatedDoc);
@@ -105,11 +101,11 @@ const enclosureMutations = {
       for (const enclosure of seedEnclosuresData) {
         const id = enclosure.id || db.collection('enclosures').doc().id;
         const enclosureToSave = { ...enclosure, id };
-        
+
         await db.collection('enclosures').doc(id).set(enclosureToSave);
 
-        const actuators = seedActuatorsData[id] || { fan: false, nebulizer: false, heater: false, lamp: false };
-        await db.collection('actuators').doc(id).set(actuators);
+        const actuators = seedActuatorsData[id] || DEFAULT_ACTUATORS;
+        await db.collection('actuators').doc(id).set({ ...actuators });
 
         createdEnclosures.push(enclosureMapper(enclosureToSave));
       }
@@ -130,7 +126,6 @@ function normalizeEnclosureInput(input) {
     humidityMin,
     humidityMax,
     noiseMax,
-    luminosityMax,
     ...rest
   } = input;
 
@@ -139,8 +134,7 @@ function normalizeEnclosureInput(input) {
     tempMax,
     humidityMin,
     humidityMax,
-    noiseMax,
-    luminosityMax
+    noiseMax
   ].some(value => value !== undefined);
 
   const limits = rest.limits || hasFlatLimits ? normalizeLimitsInput(rest.limits || {
@@ -148,8 +142,7 @@ function normalizeEnclosureInput(input) {
     tempMax,
     humidityMin,
     humidityMax,
-    noiseMax,
-    luminosityMax
+    noiseMax
   }) : undefined;
 
   return limits === undefined ? rest : { ...rest, limits };
@@ -162,8 +155,7 @@ function normalizeLimitsInput(limits) {
     tempMax: limits.tempMax,
     humidityMin: limits.humidityMin,
     humidityMax: limits.humidityMax,
-    noiseMax: limits.noiseMax,
-    luminosityMax: limits.luminosityMax
+    noiseMax: limits.noiseMax
   };
 }
 
