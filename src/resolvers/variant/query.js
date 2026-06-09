@@ -91,7 +91,7 @@ const variantQueries = {
       return {
         enclosureId,
         latestReading: history[0],
-        history: history.reverse(), // Ordenar cronologicamente para o gráfico
+        history: history.reverse(),
         stats: buildDashboardStats(history)
       };
     } catch (error) {

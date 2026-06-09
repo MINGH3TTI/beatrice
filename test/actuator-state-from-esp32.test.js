@@ -104,7 +104,7 @@ test('updateActuatorStateFromEsp32 sets actuator state to true and preserves oth
     ['enc-1', { name: 'Recinto 1' }]
   ]);
   const actuators = new Map([
-    ['enc-1', { fan: false, nebulizer: true, heater: false, lamp: true }]
+    ['enc-1', { fan: false, nebulizer: true, heater: false, exhaustor: true }]
   ]);
   const mutations = loadMutationsWithDb(createDb({ enclosures, actuators }));
 
@@ -123,7 +123,7 @@ test('updateActuatorStateFromEsp32 sets actuator state to true and preserves oth
     fan: true,
     nebulizer: true,
     heater: false,
-    lamp: true
+    exhaustor: true
   });
 });
 
@@ -132,7 +132,7 @@ test('updateActuatorStateFromEsp32 sets actuator state to false', async () => {
     ['enc-1', { name: 'Recinto 1' }]
   ]);
   const actuators = new Map([
-    ['enc-1', { fan: true, nebulizer: false, heater: false, lamp: false }]
+    ['enc-1', { fan: true, nebulizer: false, heater: false, exhaustor: false }]
   ]);
   const mutations = loadMutationsWithDb(createDb({ enclosures, actuators }));
 
@@ -151,7 +151,7 @@ test('updateActuatorStateFromEsp32 sets actuator state to false', async () => {
     fan: false,
     nebulizer: false,
     heater: false,
-    lamp: false
+    exhaustor: false
   });
 });
 
@@ -174,7 +174,7 @@ test('updateActuatorStateFromEsp32 creates default actuator document when missin
     fan: false,
     nebulizer: false,
     heater: true,
-    lamp: false
+    exhaustor: false
   });
 });
 
@@ -210,13 +210,13 @@ test('updateActuatorStateFromEsp32 rejects missing enclosure', async () => {
 
 test('Enclosure.actuators resolver prefers actuator document over mapped defaults', async () => {
   const actuators = new Map([
-    ['enc-1', { fan: true, nebulizer: false, heater: true, lamp: false }]
+    ['enc-1', { fan: true, nebulizer: false, heater: true, exhaustor: false }]
   ]);
   const resolvers = loadResolversWithDb(createDb({ actuators }));
 
   const result = await resolvers.Enclosure.actuators({
     id: 'enc-1',
-    actuators: { fan: false, nebulizer: false, heater: false, lamp: false }
+    actuators: { fan: false, nebulizer: false, heater: false, exhaustor: false }
   });
 
   assert.deepEqual(result, {
@@ -224,13 +224,13 @@ test('Enclosure.actuators resolver prefers actuator document over mapped default
     fan: true,
     nebulizer: false,
     heater: true,
-    lamp: false
+    exhaustor: false
   });
 });
 
 test('Enclosure.actuators resolver can find actuator document by enclosureId field', async () => {
   const actuators = new Map([
-    ['actuator-doc-1', { enclosureId: 'enc-1', fan: false, nebulizer: true, heater: false, lamp: true }]
+    ['actuator-doc-1', { enclosureId: 'enc-1', fan: false, nebulizer: true, heater: false, exhaustor: true }]
   ]);
   const resolvers = loadResolversWithDb(createDb({ actuators }));
 
@@ -241,6 +241,6 @@ test('Enclosure.actuators resolver can find actuator document by enclosureId fie
     fan: false,
     nebulizer: true,
     heater: false,
-    lamp: true
+    exhaustor: true
   });
 });

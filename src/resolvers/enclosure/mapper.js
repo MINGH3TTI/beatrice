@@ -2,7 +2,7 @@ const enclosureMapper = (doc) => {
   if (!doc) return null;
   const id = doc.id;
   const data = typeof doc.data === 'function' ? doc.data() : doc;
-  const actuators = data.actuators || { fan: false, nebulizer: false, heater: false, lamp: false };
+  const actuators = normalizeActuators(data.actuators);
   const lastReadings = data.lastReadings || null;
   const limits = normalizeLimits(data.limits);
 
@@ -55,8 +55,18 @@ function normalizeLimits(limits) {
   };
 }
 
+function normalizeActuators(actuators) {
+  const data = actuators || {};
+  return {
+    fan: data.fan ?? false,
+    nebulizer: data.nebulizer ?? false,
+    heater: data.heater ?? false,
+    exhaustor: data.exhaustor ?? data.lamp ?? false
+  };
+}
+
 function isNumber(value) {
   return typeof value === 'number' && Number.isFinite(value);
 }
 
-module.exports = { enclosureMapper, calculateStatus, normalizeLimits };
+module.exports = { enclosureMapper, calculateStatus, normalizeLimits, normalizeActuators };

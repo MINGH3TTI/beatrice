@@ -3,7 +3,7 @@ type Actuator {
   fan: Boolean
   nebulizer: Boolean
   heater: Boolean
-  lamp: Boolean
+  exhaustor: Boolean
 }
 
 type Limits {

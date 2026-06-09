@@ -4,7 +4,7 @@ const db = require('../../config/firebase');
 const { calculateStatus } = require('./mapper');
 const { variantMapper } = require('../variant/mapper');
 
-const DEFAULT_ACTUATORS = { fan: false, nebulizer: false, heater: false, lamp: false };
+const DEFAULT_ACTUATORS = { fan: false, nebulizer: false, heater: false, exhaustor: false };
 
 const enclosureResolvers = {
   Query: enclosureQueries,
@@ -74,10 +74,15 @@ const enclosureResolvers = {
 };
 
 function normalizeActuators(enclosureId, actuators) {
+  const data = actuators || {};
+
   return {
     enclosureId,
     ...DEFAULT_ACTUATORS,
-    ...(actuators || {})
+    fan: data.fan ?? DEFAULT_ACTUATORS.fan,
+    nebulizer: data.nebulizer ?? DEFAULT_ACTUATORS.nebulizer,
+    heater: data.heater ?? DEFAULT_ACTUATORS.heater,
+    exhaustor: data.exhaustor ?? data.lamp ?? DEFAULT_ACTUATORS.exhaustor
   };
 }
 

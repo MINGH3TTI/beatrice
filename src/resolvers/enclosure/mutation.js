@@ -1,10 +1,10 @@
 const db = require('../../config/firebase');
-const { enclosureMapper } = require('./mapper');
+const { enclosureMapper, normalizeActuators } = require('./mapper');
 const { requireAdmin } = require('../../utils/auth');
 const seedEnclosuresData = require('../../../seeds-enclosures.json');
 const seedActuatorsData = require('../../../seeds-actuators.json');
 
-const DEFAULT_ACTUATORS = { fan: false, nebulizer: false, heater: false, lamp: false };
+const DEFAULT_ACTUATORS = { fan: false, nebulizer: false, heater: false, exhaustor: false };
 const VALID_ACTUATORS = Object.keys(DEFAULT_ACTUATORS);
 
 const enclosureMutations = {
@@ -22,7 +22,7 @@ const enclosureMutations = {
       const actuatorsRef = db.collection('actuators').doc(enclosureId);
       const actuatorsDoc = await actuatorsRef.get();
       const currentActuators = actuatorsDoc.exists
-        ? { ...DEFAULT_ACTUATORS, ...actuatorsDoc.data(), enclosureId }
+        ? { enclosureId, ...normalizeActuators(actuatorsDoc.data()) }
         : { ...DEFAULT_ACTUATORS, enclosureId };
 
       currentActuators[actuatorType] = state;

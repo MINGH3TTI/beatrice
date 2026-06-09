@@ -1,6 +1,7 @@
 const db = require('../../config/firebase');
 const { collaboratorMapper, passwordResetRequestMapper } = require('./mapper');
 const { requireAuth, requireAdmin, isAdminRole } = require('../../utils/auth');
+const { normalizeActuators } = require('../enclosure/mapper');
 
 const collaboratorQueries = {
   collaborators: async (_, args, context) => {
@@ -73,9 +74,9 @@ const collaboratorQueries = {
           const encData = encDoc.data();
 
           const actuatorsDoc = await db.collection('actuators').doc(encId).get();
-          let actuators = { fan: false, nebulizer: false, heater: false, lamp: false };
+          let actuators = normalizeActuators();
           if (actuatorsDoc.exists) {
-            actuators = actuatorsDoc.data();
+            actuators = normalizeActuators(actuatorsDoc.data());
           }
 
           enclosures.push({

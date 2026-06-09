@@ -41,7 +41,7 @@ test('enclosureMapper returns actuator defaults and calculated status', () => {
     })
   });
 
-  assert.deepEqual(mapped.actuators, { fan: false, nebulizer: false, heater: false, lamp: false });
+  assert.deepEqual(mapped.actuators, { fan: false, nebulizer: false, heater: false, exhaustor: false });
   assert.equal(mapped.status, 'critical');
 });
 

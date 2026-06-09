@@ -1,4 +1,4 @@
 {
-  "rec_01": { "fan": false, "nebulizer": true, "heater": false, "lamp": true },
-  "rec_02": { "fan": true, "nebulizer": false, "heater": false, "lamp": true }
+  "rec_01": { "fan": false, "nebulizer": true, "heater": false, "exhaustor": true },
+  "rec_02": { "fan": true, "nebulizer": false, "heater": false, "exhaustor": true }
 }
